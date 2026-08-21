@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const { protect, authorize } = require('./middleware/authMiddleware');
+const propertyRoutes = require('./routes/propertyRoutes');
 
 const app = express();
 connectDB();
@@ -12,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+
+app.use('/api/properties', propertyRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'RentalShield API is running' });
