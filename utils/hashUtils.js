@@ -6,4 +6,9 @@ const generateHash = (data) => {
   return crypto.createHash('sha256').update(stringified).digest('hex');
 };
 
-module.exports = { generateHash };
+// Generates a SHA-256 hash directly from a file's raw byte buffer
+const generateFileHash = (buffer) => {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+};
+
+module.exports = { generateHash, generateFileHash };

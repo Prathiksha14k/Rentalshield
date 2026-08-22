@@ -19,6 +19,14 @@ app.use('/api/properties', propertyRoutes);
 
 app.use('/api/agreements', agreementRoutes);
 
+app.use('/api/inspections', require('./routes/inspectionRoutes'));
+
+// Global error handler — catches multer errors and any other thrown errors, returns JSON instead of HTML
+app.use((err, req, res, next) => {
+  console.error(err.message);
+  res.status(500).json({ message: err.message });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'RentalShield API is running' });
 });
