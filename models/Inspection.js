@@ -22,6 +22,8 @@ const inspectionSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'disputed'],
     default: 'pending'
   },
+   disputeReason: { type: String, default: null },
+  disputedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   onChainInspectionId: { type: String, default: null }
 }, { timestamps: true });
 

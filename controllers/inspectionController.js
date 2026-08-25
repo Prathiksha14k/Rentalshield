@@ -129,4 +129,79 @@ const getInspectionById = async (req, res) => {
   }
 };
 
-module.exports = { createInspection, uploadInspectionPhotos, getInspectionById };
+// @desc    Tenant or landlord approves an inspection (confirms photos reflect actual condition)
+// @route   PATCH /api/inspections/:id/approve
+const approveInspection = async (req, res) => {
+  try {
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection) {
+      return res.status(404).json({ message: 'Inspection not found' });
+    }
+
+    const userId = req.user._id.toString();
+    if (userId !== inspection.tenant.toString() && userId !== inspection.landlord.toString()) {
+      return res.status(403).json({ message: 'Not authorized for this inspection' });
+    }
+
+    if (inspection.status === 'disputed') {
+      return res.status(400).json({ message: 'Cannot approve a disputed inspection' });
+    }
+
+    if (inspection.photos.length === 0) {
+      return res.status(400).json({ message: 'Cannot approve an inspection with no photos' });
+    }
+
+    if (userId === inspection.tenant.toString()) {
+      inspection.tenantApproved = true;
+    }
+    if (userId === inspection.landlord.toString()) {
+      inspection.landlordApproved = true;
+    }
+
+    if (inspection.tenantApproved && inspection.landlordApproved) {
+      inspection.status = 'completed';
+    }
+
+    await inspection.save();
+    res.status(200).json(inspection);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Tenant or landlord disputes an inspection (disagrees photos reflect actual condition)
+// @route   PATCH /api/inspections/:id/dispute
+const disputeInspection = async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({ message: 'A reason is required to dispute an inspection' });
+    }
+
+    const inspection = await Inspection.findById(req.params.id);
+    if (!inspection) {
+      return res.status(404).json({ message: 'Inspection not found' });
+    }
+
+    const userId = req.user._id.toString();
+    if (userId !== inspection.tenant.toString() && userId !== inspection.landlord.toString()) {
+      return res.status(403).json({ message: 'Not authorized for this inspection' });
+    }
+
+    if (inspection.status === 'completed') {
+      return res.status(400).json({ message: 'Cannot dispute a completed inspection' });
+    }
+
+    inspection.status = 'disputed';
+    inspection.disputeReason = reason;
+    inspection.disputedBy = req.user._id;
+
+    await inspection.save();
+    res.status(200).json(inspection);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createInspection, uploadInspectionPhotos, getInspectionById, approveInspection, disputeInspection };
