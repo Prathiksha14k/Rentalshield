@@ -71,9 +71,22 @@ const uploadInspectionPhotos = async (req, res) => {
       return res.status(400).json({ message: 'No photos uploaded' });
     }
 
+    // labels must be sent as an array matching the order of uploaded files
+    let labels = req.body.labels;
+    if (!labels) {
+      return res.status(400).json({ message: 'A label is required for each photo' });
+    }
+    if (!Array.isArray(labels)) {
+      labels = [labels]; // form-data sends a single value as a string, not an array
+    }
+    if (labels.length !== req.files.length) {
+      return res.status(400).json({ message: 'Number of labels must match number of photos' });
+    }
+
     const uploadedPhotos = [];
 
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
       const hash = generateFileHash(file.buffer);
 
       const cloudinaryResult = await new Promise((resolve, reject) => {
@@ -91,6 +104,7 @@ const uploadInspectionPhotos = async (req, res) => {
         url: cloudinaryResult.secure_url,
         cloudinaryPublicId: cloudinaryResult.public_id,
         hash,
+        label: labels[i],
         uploadedBy: req.user._id
       });
     }
