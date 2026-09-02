@@ -1,2 +1,8 @@
-node_modules/
-.env
+backend/node_modules/
+backend/.env
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/*.pyc
+ai-service/diff_output.png
+ai-service/image1_check.png
+ai-service/image2_check.png
