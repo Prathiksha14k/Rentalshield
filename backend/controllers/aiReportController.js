@@ -1,6 +1,8 @@
 const AiReport = require('../models/AiReport');
 const Inspection = require('../models/Inspection');
 
+const SIMILARITY_THRESHOLD = 0.97; // photos scoring below this are flagged for admin review — needs recalibration once more real test data exists
+
 // @desc    Save a new AI comparison report (called by the Flask AI service)
 // @route   POST /api/ai-reports
 const createAiReport = async (req, res) => {
@@ -22,7 +24,6 @@ const createAiReport = async (req, res) => {
       return res.status(404).json({ message: 'One or both inspections not found' });
     }
 
-    // Only the tenant or landlord on these inspections can trigger a saved report
     const userId = req.user._id.toString();
     const isAuthorized =
       userId === moveInInspection.tenant.toString() ||
@@ -32,10 +33,16 @@ const createAiReport = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized for these inspections' });
     }
 
+    // Attach a flag to each result based on the threshold
+    const flaggedResults = results.map((r) => ({
+      ...r,
+      flaggedForReview: r.similarityScore < SIMILARITY_THRESHOLD
+    }));
+
     const aiReport = await AiReport.create({
       moveInInspection: moveInInspectionId,
       moveOutInspection: moveOutInspectionId,
-      results
+      results: flaggedResults
     });
 
     res.status(201).json(aiReport);

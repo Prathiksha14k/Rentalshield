@@ -4,7 +4,8 @@ const labelResultSchema = new mongoose.Schema({
   label: { type: String, required: true },
   similarityScore: { type: Number, required: true },
   moveInPhotoUrl: { type: String, required: true },
-  moveOutPhotoUrl: { type: String, required: true }
+  moveOutPhotoUrl: { type: String, required: true },
+  flaggedForReview: { type: Boolean, required: true }
 });
 
 const aiReportSchema = new mongoose.Schema({
