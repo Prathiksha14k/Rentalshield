@@ -88,4 +88,55 @@ const getClaimById = async (req, res) => {
   }
 };
 
-module.exports = { createClaim, getClaimById };
+// PATCH /api/claims/:id/respond
+// Tenant accepts or disputes a claim
+const respondToClaim = async (req, res) => {
+  try {
+    const { response, note } = req.body;
+
+    // Validate response value
+    if (!['accept', 'dispute'].includes(response)) {
+      return res.status(400).json({ message: "response must be 'accept' or 'dispute'" });
+    }
+
+    // Require note if disputing
+    if (response === 'dispute' && (!note || note.trim() === '')) {
+      return res.status(400).json({ message: 'note is required when disputing a claim' });
+    }
+
+    const claim = await Claim.findById(req.params.id);
+
+    if (!claim) {
+      return res.status(404).json({ message: 'Claim not found' });
+    }
+
+    // Ownership check: only the tenant on this claim can respond
+    if (claim.tenant.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to respond to this claim' });
+    }
+
+    // Must be pending — blocks responding twice
+    if (claim.status !== 'pending') {
+      return res.status(400).json({ message: `Claim already has status '${claim.status}', cannot respond again` });
+    }
+
+    // Map tenant-facing action to internal status
+    if (response === 'accept') {
+      claim.tenantResponse = 'accepted';
+      claim.status = 'accepted';
+    } else {
+      claim.tenantResponse = 'disputed';
+      claim.status = 'admin-review';
+    }
+
+    claim.tenantResponseNote = note || '';
+
+    await claim.save();
+
+    res.status(200).json(claim);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { createClaim, getClaimById, respondToClaim };
