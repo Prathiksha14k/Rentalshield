@@ -23,6 +23,8 @@ app.use('/api/inspections', require('./routes/inspectionRoutes'));
 
 app.use('/api/ai-reports', require('./routes/aiReportRoutes'));
 
+app.use('/api/claims', require('./routes/claimRoutes'));
+
 // Global error handler — catches multer errors and any other thrown errors, returns JSON instead of HTML
 app.use((err, req, res, next) => {
   console.error(err.message);
