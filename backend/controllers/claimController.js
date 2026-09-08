@@ -139,4 +139,38 @@ const respondToClaim = async (req, res) => {
   }
 };
 
-module.exports = { createClaim, getClaimById, respondToClaim };
+// @desc    Get all claims for a specific agreement (optionally filtered by status)
+// @route   GET /api/claims/agreement/:agreementId
+const getClaimsByAgreement = async (req, res) => {
+  try {
+    const { agreementId } = req.params;
+    const { status } = req.query;
+
+    const agreement = await Agreement.findById(agreementId);
+    if (!agreement) {
+      return res.status(404).json({ message: 'Agreement not found' });
+    }
+
+    const userId = req.user._id.toString();
+    if (userId !== agreement.tenant.toString() && userId !== agreement.landlord.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view claims for this agreement' });
+    }
+
+    const filter = { agreement: agreementId };
+    if (status) {
+      filter.status = status;
+    }
+
+    const claims = await Claim.find(filter)
+      .populate('property', 'title address')
+      .populate('tenant', 'name email')
+      .populate('landlord', 'name email')
+      .populate('aiReport');
+
+    res.status(200).json(claims);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createClaim, getClaimById, respondToClaim, getClaimsByAgreement };
