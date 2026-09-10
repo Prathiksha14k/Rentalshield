@@ -173,4 +173,55 @@ const getClaimsByAgreement = async (req, res) => {
   }
 };
 
-module.exports = { createClaim, getClaimById, respondToClaim, getClaimsByAgreement };
+// @desc    Admin makes a final decision on a claim under review
+// @route   PATCH /api/claims/:id/decide
+const decideClaim = async (req, res) => {
+  try {
+    const { decision, adminDecidedAmount, adminNotes } = req.body;
+
+    // Validate decision value
+    if (!['accept', 'reject'].includes(decision)) {
+      return res.status(400).json({ message: "decision must be 'accept' or 'reject'" });
+    }
+
+    const claim = await Claim.findById(req.params.id);
+
+    if (!claim) {
+      return res.status(404).json({ message: 'Claim not found' });
+    }
+
+    // Must be in admin-review — blocks deciding twice, blocks deciding pending claims
+    if (claim.status !== 'admin-review') {
+      return res.status(400).json({ message: `Claim has status '${claim.status}', not eligible for admin decision` });
+    }
+
+    if (decision === 'accept') {
+      // adminDecidedAmount required, must be > 0 and <= claimedAmount
+      if (adminDecidedAmount === undefined || adminDecidedAmount <= 0) {
+        return res.status(400).json({ message: 'adminDecidedAmount is required and must be greater than 0 when accepting' });
+      }
+      if (adminDecidedAmount > claim.claimedAmount) {
+        return res.status(400).json({ message: 'adminDecidedAmount cannot exceed claimedAmount' });
+      }
+
+      claim.status = 'accepted';
+      claim.adminDecision = 'accepted';
+      claim.adminDecidedAmount = adminDecidedAmount;
+    } else {
+      claim.status = 'rejected';
+      claim.adminDecision = 'rejected';
+      claim.adminDecidedAmount = 0;
+    }
+
+    claim.decidedBy = req.user._id;
+    claim.adminNotes = adminNotes || '';
+
+    await claim.save();
+
+    res.status(200).json(claim);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createClaim, getClaimById, respondToClaim, getClaimsByAgreement, decideClaim };
