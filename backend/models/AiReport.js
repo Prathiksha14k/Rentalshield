@@ -18,7 +18,8 @@ const aiReportSchema = new mongoose.Schema({
     default: 'pending'
   },
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  adminNotes: { type: String, default: null }
+  adminNotes: { type: String, default: null },
+  blockchainTxHash: { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('AiReport', aiReportSchema);

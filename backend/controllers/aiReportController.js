@@ -3,6 +3,10 @@ const Inspection = require('../models/Inspection');
 
 const SIMILARITY_THRESHOLD = 0.97; // photos scoring below this are flagged for admin review — needs recalibration once more real test data exists
 
+const Agreement = require('../models/Agreement');
+const { generateHash } = require('../utils/hashUtils');
+const { recordEvidenceHash } = require('../services/blockchainService');
+
 // @desc    Save a new AI comparison report (called by the Flask AI service)
 // @route   POST /api/ai-reports
 const createAiReport = async (req, res) => {
@@ -33,16 +37,34 @@ const createAiReport = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized for these inspections' });
     }
 
+    const agreement = await Agreement.findById(moveInInspection.agreement);
+    if (!agreement) {
+      return res.status(404).json({ message: 'Associated agreement not found' });
+    }
+
     // Attach a flag to each result based on the threshold
     const flaggedResults = results.map((r) => ({
       ...r,
       flaggedForReview: r.similarityScore < SIMILARITY_THRESHOLD
     }));
 
+    // Hash the full results array to anchor evidence integrity on-chain
+    const evidenceHash = generateHash(flaggedResults);
+
+    let blockchainTxHash = null;
+    try {
+      const blockchainResult = await recordEvidenceHash(agreement._id.toString(), evidenceHash);
+      blockchainTxHash = blockchainResult.transactionHash;
+    } catch (chainError) {
+      // If the on-chain anchor fails, don't block report creation — log it and continue
+      console.error('Blockchain evidence anchoring failed:', chainError.message);
+    }
+
     const aiReport = await AiReport.create({
       moveInInspection: moveInInspectionId,
       moveOutInspection: moveOutInspectionId,
-      results: flaggedResults
+      results: flaggedResults,
+      blockchainTxHash
     });
 
     res.status(201).json(aiReport);
@@ -50,7 +72,6 @@ const createAiReport = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 // @desc    Get a single AI report by ID
 // @route   GET /api/ai-reports/:id
 const getAiReportById = async (req, res) => {
