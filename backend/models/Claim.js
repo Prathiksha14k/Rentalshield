@@ -21,7 +21,10 @@ const claimSchema = new mongoose.Schema({
   tenantResponseNote: { type: String, default: null },
   adminDecision: { type: String, default: null },
   adminDecidedAmount: { type: Number, default: null },
-  decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+  decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  blockchainTxHash: { type: String, default: null },
+  blockchainTxHash: { type: String, default: null },
+  adminNotes: { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Claim', claimSchema);

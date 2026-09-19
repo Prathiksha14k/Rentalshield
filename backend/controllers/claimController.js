@@ -1,6 +1,7 @@
 const Claim = require('../models/Claim');
 const Agreement = require('../models/Agreement');
 const AiReport = require('../models/AiReport');
+const { releaseFunds } = require('../services/blockchainService');
 
 // @desc    Landlord files a claim against the deposit
 // @route   POST /api/claims
@@ -179,7 +180,6 @@ const decideClaim = async (req, res) => {
   try {
     const { decision, adminDecidedAmount, adminNotes } = req.body;
 
-    // Validate decision value
     if (!['accept', 'reject'].includes(decision)) {
       return res.status(400).json({ message: "decision must be 'accept' or 'reject'" });
     }
@@ -190,13 +190,19 @@ const decideClaim = async (req, res) => {
       return res.status(404).json({ message: 'Claim not found' });
     }
 
-    // Must be in admin-review — blocks deciding twice, blocks deciding pending claims
     if (claim.status !== 'admin-review') {
       return res.status(400).json({ message: `Claim has status '${claim.status}', not eligible for admin decision` });
     }
 
+    const agreement = await Agreement.findById(claim.agreement);
+    if (!agreement) {
+      return res.status(404).json({ message: 'Associated agreement not found' });
+    }
+
+    let landlordAmount;
+    let tenantAmount;
+
     if (decision === 'accept') {
-      // adminDecidedAmount required, must be > 0 and <= claimedAmount
       if (adminDecidedAmount === undefined || adminDecidedAmount <= 0) {
         return res.status(400).json({ message: 'adminDecidedAmount is required and must be greater than 0 when accepting' });
       }
@@ -204,10 +210,16 @@ const decideClaim = async (req, res) => {
         return res.status(400).json({ message: 'adminDecidedAmount cannot exceed claimedAmount' });
       }
 
+      landlordAmount = adminDecidedAmount;
+      tenantAmount = agreement.depositAmount - adminDecidedAmount;
+
       claim.status = 'accepted';
       claim.adminDecision = 'accepted';
       claim.adminDecidedAmount = adminDecidedAmount;
     } else {
+      landlordAmount = 0;
+      tenantAmount = agreement.depositAmount;
+
       claim.status = 'rejected';
       claim.adminDecision = 'rejected';
       claim.adminDecidedAmount = 0;
@@ -215,6 +227,15 @@ const decideClaim = async (req, res) => {
 
     claim.decidedBy = req.user._id;
     claim.adminNotes = adminNotes || '';
+
+    // Call the blockchain to actually release funds
+    const blockchainResult = await releaseFunds(
+      agreement._id.toString(),
+      landlordAmount,
+      tenantAmount
+    );
+
+    claim.blockchainTxHash = blockchainResult.transactionHash;
 
     await claim.save();
 
