@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Properties from './pages/Properties';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -19,6 +20,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/properties"
+            element={
+              <PrivateRoute>
+                <Properties />
               </PrivateRoute>
             }
           />
