@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Properties from './pages/Properties';
 
+import Agreements from './pages/Agreements';
+
 function PrivateRoute({ children }) {
   const { user } = useAuth();
   return user ? children : <Navigate to="/login" />;
@@ -31,6 +33,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+           path="/agreements"
+           element={
+           <PrivateRoute>
+           <Agreements />
+           </PrivateRoute>
+           }
+           />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
