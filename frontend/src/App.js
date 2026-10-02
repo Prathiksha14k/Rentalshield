@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Properties from './pages/Properties';
 
 import Agreements from './pages/Agreements';
+import Claims from './pages/Claims';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -38,6 +39,14 @@ function App() {
            element={
            <PrivateRoute>
            <Agreements />
+           </PrivateRoute>
+           }
+           />
+           <Route
+            path="/claims"
+            element={
+           <PrivateRoute>
+           <Claims />
            </PrivateRoute>
            }
            />

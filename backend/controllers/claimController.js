@@ -152,8 +152,12 @@ const getClaimsByAgreement = async (req, res) => {
       return res.status(404).json({ message: 'Agreement not found' });
     }
 
-    const userId = req.user._id.toString();
-    if (userId !== agreement.tenant.toString() && userId !== agreement.landlord.toString()) {
+        const userId = req.user._id.toString();
+    const isTenant = userId === agreement.tenant.toString();
+    const isLandlord = userId === agreement.landlord.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isTenant && !isLandlord && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to view claims for this agreement' });
     }
 
