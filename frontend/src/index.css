@@ -58,3 +58,26 @@ button {
 button:hover {
   background: var(--primary-dark);
 }
+
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+  line-height: 1.6;
+}
+
+.status {
+  font-weight: 600;
+}
+.status-pending { color: #b45309; }
+.status-admin-review { color: #c2410c; }
+.status-accepted { color: #15803d; }
+.status-rejected { color: #b91c1c; }

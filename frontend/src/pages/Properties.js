@@ -65,11 +65,11 @@ function Properties() {
           </div>
           <div>
             <label>Rent Amount</label>
-            <input type="number" value={rentAmount} onChange={(e) => setRentAmount(e.target.value)} required />
+           <input type="number" step="any" value={rentAmount} onChange={(e) => setRentAmount(e.target.value)} required />
           </div>
           <div>
             <label>Deposit Amount</label>
-            <input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} required />
+            <input type="number" step="any" value={rentAmount} onChange={(e) => setRentAmount(e.target.value)} required />
           </div>
           <div>
             <label>Description</label>

@@ -11,6 +11,8 @@ function Claims() {
   const [lookupAgreementId, setLookupAgreementId] = useState('');
   const [error, setError] = useState('');
 
+  const [deciding, setDeciding] = useState(false);
+
   const fetchClaimsForAgreement = async () => {
     setError('');
     try {
@@ -53,24 +55,28 @@ function Claims() {
     }
   };
 
-  const handleDecide = async (claimId, decision, claimedAmountForClaim) => {
-    let adminDecidedAmount = 0;
-    if (decision === 'accept') {
-      adminDecidedAmount = prompt(`Enter amount to award landlord (max ${claimedAmountForClaim}):`);
-      if (!adminDecidedAmount) return;
-    }
-    const adminNotes = prompt('Enter admin notes (optional):') || '';
-    try {
-      await axiosClient.patch(`/claims/${claimId}/decide`, {
-        decision,
-        adminDecidedAmount: Number(adminDecidedAmount),
-        adminNotes,
-      });
-      fetchClaimsForAgreement();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to decide claim');
-    }
-  };
+ const handleDecide = async (claimId, decision, claimedAmountForClaim) => {
+  if (deciding) return;
+  let adminDecidedAmount = 0;
+  if (decision === 'accept') {
+    adminDecidedAmount = prompt(`Enter amount to award landlord (max ${claimedAmountForClaim}):`);
+    if (!adminDecidedAmount) return;
+  }
+  const adminNotes = prompt('Enter admin notes (optional):') || '';
+  setDeciding(true);
+  try {
+    await axiosClient.patch(`/claims/${claimId}/decide`, {
+      decision,
+      adminDecidedAmount: Number(adminDecidedAmount),
+      adminNotes,
+    });
+    fetchClaimsForAgreement();
+  } catch (err) {
+    setError(err.response?.data?.message || 'Failed to decide claim');
+  } finally {
+    setDeciding(false);
+  }
+};
 
   return (
     <div style={{ maxWidth: '600px', margin: '50px auto' }}>
@@ -89,7 +95,7 @@ function Claims() {
           </div>
           <div>
             <label>Claimed Amount</label>
-            <input type="number" value={claimedAmount} onChange={(e) => setClaimedAmount(e.target.value)} required />
+            <input type="number" step="any" value={claimedAmount} onChange={(e) => setClaimedAmount(e.target.value)} required />
           </div>
           <button type="submit">File Claim</button>
         </form>
@@ -108,12 +114,12 @@ function Claims() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       {claims.map((claim) => (
-        <div key={claim._id} style={{ border: '1px solid #ccc', padding: '10px', marginTop: '10px' }}>
+        <div key={claim._id} className="card">
           <strong>{claim.description}</strong>
           <br />
           Claimed Amount: {claim.claimedAmount}
           <br />
-          Status: {claim.status}
+          Status: <span className={`status status-${claim.status}`}>{claim.status}</span>
           <br />
           Tenant Response: {claim.tenantResponse}
           <br />
@@ -141,11 +147,12 @@ function Claims() {
           )}
 
           {user?.role === 'admin' && claim.status === 'admin-review' && (
-            <div style={{ marginTop: '8px' }}>
-              <button onClick={() => handleDecide(claim._id, 'accept', claim.claimedAmount)}>Accept Claim</button>{' '}
-              <button onClick={() => handleDecide(claim._id, 'reject')}>Reject Claim</button>
-            </div>
-          )}
+  <div style={{ marginTop: '8px' }}>
+    <button disabled={deciding} onClick={() => handleDecide(claim._id, 'accept', claim.claimedAmount)}>Accept Claim</button>{' '}
+    <button disabled={deciding} onClick={() => handleDecide(claim._id, 'reject')}>Reject Claim</button>
+    {deciding && <p>Sending transaction to Sepolia. Wait 15 to 30 seconds.</p>}
+  </div>
+)}
         </div>
       ))}
     </div>
