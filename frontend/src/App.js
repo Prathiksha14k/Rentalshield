@@ -6,10 +6,17 @@ import Properties from './pages/Properties';
 
 import Agreements from './pages/Agreements';
 import Claims from './pages/Claims';
+import Navbar from './components/Navbar';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" />;
+  return (
+    <>
+      <Navbar />
+      {children}
+    </>
+  );
 }
 
 function App() {
