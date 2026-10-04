@@ -6,12 +6,14 @@ const {
   createInspection,
   uploadInspectionPhotos,
   getInspectionById,
+  getInspectionsByAgreement,
   approveInspection,
   disputeInspection
 } = require('../controllers/inspectionController');
 
 router.post('/', protect, createInspection);
 router.post('/:id/photos', protect, upload.array('photos', 10), uploadInspectionPhotos);
+router.get('/agreement/:agreementId', protect, getInspectionsByAgreement);
 router.get('/:id', protect, getInspectionById);
 router.patch('/:id/approve', protect, approveInspection);
 router.patch('/:id/dispute', protect, disputeInspection);

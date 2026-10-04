@@ -218,4 +218,30 @@ const disputeInspection = async (req, res) => {
   }
 };
 
-module.exports = { createInspection, uploadInspectionPhotos, getInspectionById, approveInspection, disputeInspection };
+// @desc    Get all inspections for an agreement
+// @route   GET /api/inspections/agreement/:agreementId
+const getInspectionsByAgreement = async (req, res) => {
+  try {
+    const agreement = await Agreement.findById(req.params.agreementId);
+    if (!agreement) {
+      return res.status(404).json({ message: 'Agreement not found' });
+    }
+
+    const userId = req.user._id.toString();
+    const isParty =
+      userId === agreement.tenant.toString() ||
+      userId === agreement.landlord.toString();
+
+    if (!isParty && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized for this agreement' });
+    }
+
+    const inspections = await Inspection.find({ agreement: agreement._id }).sort({ createdAt: 1 });
+    res.status(200).json(inspections);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+module.exports = { createInspection, uploadInspectionPhotos, getInspectionById, getInspectionsByAgreement, approveInspection, disputeInspection };
