@@ -7,6 +7,7 @@ import Properties from './pages/Properties';
 import Agreements from './pages/Agreements';
 import Claims from './pages/Claims';
 import Navbar from './components/Navbar';
+import Inspections from './pages/Inspections';
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -57,6 +58,14 @@ function App() {
            </PrivateRoute>
            }
            />
+           <Route
+  path="/inspections"
+  element={
+    <PrivateRoute>
+      <Inspections />
+    </PrivateRoute>
+  }
+/>
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>

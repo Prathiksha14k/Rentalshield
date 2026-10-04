@@ -19,6 +19,7 @@ function Navbar() {
       <Link to="/properties">Properties</Link>
       <Link to="/agreements">Agreements</Link>
       <Link to="/claims">Claims</Link>
+      <Link to="/inspections">Inspections</Link>
       <span style={{ marginLeft: 'auto' }}>
         {user?.name} ({user?.role})
       </span>
