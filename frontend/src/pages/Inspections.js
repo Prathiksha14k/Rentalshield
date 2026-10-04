@@ -1,5 +1,111 @@
 import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
+import { useAuth } from '../context/AuthContext';
+
+function InspectionCard({ inspection, onChanged, onError }) {
+  const { user } = useAuth();
+  const [label, setLabel] = useState('');
+  const [file, setFile] = useState(null);
+  const [fileKey, setFileKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+
+  const handleUpload = async () => {
+    if (!file || !label.trim()) {
+      onError('Choose a photo and type a label');
+      return;
+    }
+    setBusy(true);
+    onError('');
+    try {
+      const formData = new FormData();
+      formData.append('photos', file);
+      formData.append('labels', label.trim());
+      await axiosClient.post(`/inspections/${inspection._id}/photos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setLabel('');
+      setFile(null);
+      setFileKey(fileKey + 1);
+      onChanged();
+    } catch (err) {
+      onError(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    onError('');
+    try {
+      await axiosClient.patch(`/inspections/${inspection._id}/approve`);
+      onChanged();
+    } catch (err) {
+      onError(err.response?.data?.message || 'Approve failed');
+    }
+  };
+
+  const handleDispute = async () => {
+    const reason = prompt('Enter a reason for disputing this inspection:');
+    if (!reason) return;
+    onError('');
+    try {
+      await axiosClient.patch(`/inspections/${inspection._id}/dispute`, { reason });
+      onChanged();
+    } catch (err) {
+      onError(err.response?.data?.message || 'Dispute failed');
+    }
+  };
+
+  const alreadyApproved =
+    (user?.role === 'tenant' && inspection.tenantApproved) ||
+    (user?.role === 'landlord' && inspection.landlordApproved);
+
+  return (
+    <div className="card">
+      <strong>{inspection.type}</strong>
+      <br />
+      Status: {inspection.status}
+      <br />
+      Tenant approved: {inspection.tenantApproved ? 'Yes' : 'No'} | Landlord approved:{' '}
+      {inspection.landlordApproved ? 'Yes' : 'No'}
+      {inspection.disputeReason && (
+        <>
+          <br />
+          Dispute reason: {inspection.disputeReason}
+        </>
+      )}
+
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+        {inspection.photos.map((p) => (
+          <div key={p._id} style={{ fontSize: '12px' }}>
+            <img src={p.url} alt={p.label} style={{ width: '90px', height: '70px', objectFit: 'cover' }} />
+            <br />
+            {p.label}
+          </div>
+        ))}
+      </div>
+
+      {inspection.status === 'pending' && (
+        <div style={{ marginTop: '10px' }}>
+          <input placeholder="Label (e.g. wall)" value={label} onChange={(e) => setLabel(e.target.value)} />
+          <input key={fileKey} type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
+          <button onClick={handleUpload} disabled={busy}>
+            {busy ? 'Uploading...' : 'Upload Photo'}
+          </button>
+        </div>
+      )}
+
+      {inspection.status === 'pending' && inspection.photos.length > 0 && (
+        <div style={{ marginTop: '8px' }}>
+          <button onClick={handleApprove} disabled={alreadyApproved}>
+            {alreadyApproved ? 'You approved' : 'Approve'}
+          </button>
+          <button onClick={handleDispute}>Dispute</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Inspections() {
   const [agreements, setAgreements] = useState([]);
@@ -20,7 +126,6 @@ function Inspections() {
   }, []);
 
   const loadInspections = async (agreementId) => {
-    setError('');
     try {
       const response = await axiosClient.get(`/inspections/agreement/${agreementId}`);
       setInspections(response.data);
@@ -33,6 +138,7 @@ function Inspections() {
     const id = e.target.value;
     setSelectedId(id);
     setInspections([]);
+    setError('');
     if (id) loadInspections(id);
   };
 
@@ -70,15 +176,12 @@ function Inspections() {
       )}
 
       {inspections.map((i) => (
-        <div key={i._id} className="card">
-          <strong>{i.type}</strong>
-          <br />
-          Status: {i.status}
-          <br />
-          Photos: {i.photos.length}
-          <br />
-          Tenant approved: {i.tenantApproved ? 'Yes' : 'No'} | Landlord approved: {i.landlordApproved ? 'Yes' : 'No'}
-        </div>
+        <InspectionCard
+          key={i._id}
+          inspection={i}
+          onChanged={() => loadInspections(selectedId)}
+          onError={setError}
+        />
       ))}
     </div>
   );
