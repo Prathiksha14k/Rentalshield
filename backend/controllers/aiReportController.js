@@ -90,4 +90,35 @@ const getAiReportById = async (req, res) => {
   }
 };
 
-module.exports = { createAiReport, getAiReportById };
+
+// @desc    Run the AI comparison via the Flask service and save the report
+// @route   POST /api/ai-reports/run
+const runAiComparison = async (req, res) => {
+  try {
+    const { moveInInspectionId, moveOutInspectionId } = req.body;
+
+    if (!moveInInspectionId || !moveOutInspectionId) {
+      return res.status(400).json({ message: 'moveInInspectionId and moveOutInspectionId are required' });
+    }
+
+    const token = req.headers.authorization.split(' ')[1];
+
+    const flaskResponse = await fetch('http://localhost:5001/compare-inspections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moveInInspectionId, moveOutInspectionId, authToken: token }),
+    });
+
+    const data = await flaskResponse.json();
+
+    if (!flaskResponse.ok) {
+      return res.status(flaskResponse.status).json({ message: data.error || 'AI service failed', details: data });
+    }
+
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(502).json({ message: `Could not reach the AI service: ${error.message}` });
+  }
+};
+
+module.exports = { createAiReport, getAiReportById, runAiComparison };

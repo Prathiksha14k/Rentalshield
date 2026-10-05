@@ -112,6 +112,8 @@ function Inspections() {
   const [selectedId, setSelectedId] = useState('');
   const [inspections, setInspections] = useState([]);
   const [error, setError] = useState('');
+  const [report, setReport] = useState(null);
+  const [running, setRunning] = useState(false);
 
   useEffect(() => {
     const loadAgreements = async () => {
@@ -138,6 +140,7 @@ function Inspections() {
     const id = e.target.value;
     setSelectedId(id);
     setInspections([]);
+    setReport(null);
     setError('');
     if (id) loadInspections(id);
   };
@@ -149,6 +152,27 @@ function Inspections() {
       loadInspections(selectedId);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create inspection');
+    }
+  };
+
+  const moveIn = inspections.find((i) => i.type === 'move-in');
+  const moveOut = inspections.find((i) => i.type === 'move-out');
+  const canCompare =
+    moveIn && moveOut && moveIn.status === 'completed' && moveOut.status === 'completed';
+
+  const runComparison = async () => {
+    setError('');
+    setRunning(true);
+    try {
+      const response = await axiosClient.post('/ai-reports/run', {
+        moveInInspectionId: moveIn._id,
+        moveOutInspectionId: moveOut._id,
+      });
+      setReport(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'AI comparison failed');
+    } finally {
+      setRunning(false);
     }
   };
 
@@ -183,6 +207,55 @@ function Inspections() {
           onError={setError}
         />
       ))}
+
+      {canCompare && (
+        <div className="card">
+          <strong>AI damage check</strong>
+          <br />
+          <button onClick={runComparison} disabled={running}>
+            {running ? 'Comparing photos...' : 'Run AI Comparison'}
+          </button>
+          {running && <p>This can take up to 30 seconds.</p>}
+        </div>
+      )}
+
+      {report && (
+        <div className="card">
+          <strong>AI Report</strong>
+          {report.results.map((r) => {
+            const flagged = r.flaggedForReview ?? r.similarityScore < 0.97;
+            return (
+              <div key={r.label} style={{ marginTop: '10px' }}>
+                Label: {r.label}
+                <br />
+                Similarity: {r.similarityScore} (flagged below 0.97)
+                <br />
+                Result:{' '}
+                <span className={flagged ? 'status status-rejected' : 'status status-accepted'}>
+                  {flagged ? 'Flagged for review' : 'Not flagged'}
+                </span>
+                {r.moveInPhotoUrl && r.moveOutPhotoUrl && (
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                    <img src={r.moveInPhotoUrl} alt="move-in" style={{ width: '120px' }} />
+                    <img src={r.moveOutPhotoUrl} alt="move-out" style={{ width: '120px' }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <br />
+          {report.blockchainTxHash ? (
+            <small>
+              Evidence hash on-chain:{' '}
+              <a href={`https://sepolia.etherscan.io/tx/${report.blockchainTxHash}`} target="_blank" rel="noreferrer">
+                {report.blockchainTxHash.slice(0, 20)}...
+              </a>
+            </small>
+          ) : (
+            <small>Evidence hash was not anchored on-chain</small>
+          )}
+        </div>
+      )}
     </div>
   );
 }
