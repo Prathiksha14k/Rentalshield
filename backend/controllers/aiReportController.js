@@ -121,4 +121,33 @@ const runAiComparison = async (req, res) => {
   }
 };
 
-module.exports = { createAiReport, getAiReportById, runAiComparison };
+// @desc    List AI reports for an agreement
+// @route   GET /api/ai-reports/agreement/:agreementId
+const getAiReportsByAgreement = async (req, res) => {
+  try {
+    const agreement = await Agreement.findById(req.params.agreementId);
+    if (!agreement) {
+      return res.status(404).json({ message: 'Agreement not found' });
+    }
+
+    const userId = req.user._id.toString();
+    const isParty =
+      userId === agreement.tenant.toString() ||
+      userId === agreement.landlord.toString();
+
+    if (!isParty && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized for this agreement' });
+    }
+
+    const inspections = await Inspection.find({ agreement: agreement._id }).select('_id');
+    const ids = inspections.map((i) => i._id);
+
+    const reports = await AiReport.find({ moveInInspection: { $in: ids } }).sort({ createdAt: -1 });
+    res.status(200).json(reports);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+module.exports = { createAiReport, getAiReportById, runAiComparison, getAiReportsByAgreement };
