@@ -10,7 +10,7 @@ async function main() {
   const contractAddress = process.env.CONTRACT_ADDRESS;
   const contract = await ethers.getContractAt("RentalEscrow", contractAddress, landlordWallet);
 
-   const agreementId = "6ac1566a542b84774fe02965";
+   const agreementId = "6ac46dd14da2fc5d4eb45276";
   const landlordAddress = "0x543203e6538a62FCBD2160b094ba138c8aC18A96";
   const tenantAddress = "0xE6BB0c86f4Db9c1B1AdFd7BAe9A5533F2863973f";
   const depositAmount = ethers.parseEther("0.01");
