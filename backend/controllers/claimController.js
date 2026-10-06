@@ -1,6 +1,7 @@
 const Claim = require('../models/Claim');
 const Agreement = require('../models/Agreement');
 const AiReport = require('../models/AiReport');
+const Inspection = require('../models/Inspection');
 const { releaseFunds } = require('../services/blockchainService');
 
 // @desc    Landlord files a claim against the deposit
@@ -40,9 +41,15 @@ const createClaim = async (req, res) => {
     let aiReportRef = null;
     if (aiReportId) {
       const aiReport = await AiReport.findById(aiReportId);
-      if (!aiReport) {
+            if (!aiReport) {
         return res.status(404).json({ message: 'Referenced AI report not found' });
       }
+
+      const reportInspection = await Inspection.findById(aiReport.moveInInspection);
+      if (!reportInspection || reportInspection.agreement.toString() !== agreement._id.toString()) {
+        return res.status(400).json({ message: 'AI report does not belong to this agreement' });
+      }
+
       aiReportRef = aiReport._id;
     }
 

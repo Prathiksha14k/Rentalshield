@@ -35,9 +35,14 @@ const createAgreement = async (req, res) => {
 // Get all agreements belonging to the logged-in user (tenant or landlord)
 const getMyAgreements = async (req, res) => {
   try {
-    const filter = req.user.role === 'landlord'
-      ? { landlord: req.user._id }
-      : { tenant: req.user._id };
+    let filter;
+    if (req.user.role === 'admin') {
+      filter = {};
+    } else if (req.user.role === 'landlord') {
+      filter = { landlord: req.user._id };
+    } else {
+      filter = { tenant: req.user._id };
+    }
 
     const agreements = await Agreement.find(filter)
       .populate('property', 'title address')
