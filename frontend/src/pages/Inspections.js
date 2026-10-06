@@ -85,7 +85,7 @@ function InspectionCard({ inspection, onChanged, onError }) {
         ))}
       </div>
 
-      {inspection.status === 'pending' && (
+       {inspection.status === 'pending' && user?.role !== 'admin' && (
         <div style={{ marginTop: '10px' }}>
           <input placeholder="Label (e.g. wall)" value={label} onChange={(e) => setLabel(e.target.value)} />
           <input key={fileKey} type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
@@ -95,7 +95,7 @@ function InspectionCard({ inspection, onChanged, onError }) {
         </div>
       )}
 
-      {inspection.status === 'pending' && inspection.photos.length > 0 && (
+        {inspection.status === 'pending' && inspection.photos.length > 0 && user?.role !== 'admin' && (
         <div style={{ marginTop: '8px' }}>
           <button onClick={handleApprove} disabled={alreadyApproved}>
             {alreadyApproved ? 'You approved' : 'Approve'}
@@ -108,6 +108,8 @@ function InspectionCard({ inspection, onChanged, onError }) {
 }
 
 function Inspections() {
+    const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [agreements, setAgreements] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [inspections, setInspections] = useState([]);
@@ -192,7 +194,7 @@ function Inspections() {
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {selectedId && (
+           {selectedId && !isAdmin && (
         <div style={{ marginTop: '12px' }}>
           <button onClick={() => handleCreate('move-in')}>Create Move-in</button>
           <button onClick={() => handleCreate('move-out')}>Create Move-out</button>
@@ -208,7 +210,7 @@ function Inspections() {
         />
       ))}
 
-      {canCompare && (
+            {canCompare && !isAdmin && (
         <div className="card">
           <strong>AI damage check</strong>
           <br />
