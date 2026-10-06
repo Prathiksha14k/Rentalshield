@@ -11,6 +11,7 @@ function Navbar() {
         gap: '16px',
         alignItems: 'center',
         padding: '12px 24px',
+        flexWrap: 'wrap',
         borderBottom: '1px solid #ccc',
       }}
     >
@@ -20,7 +21,7 @@ function Navbar() {
       <Link to="/agreements">Agreements</Link>
       <Link to="/claims">Claims</Link>
       <Link to="/inspections">Inspections</Link>
-      <span style={{ marginLeft: 'auto' }}>
+            <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}>
         {user?.name} ({user?.role})
       </span>
       <button onClick={logout}>Logout</button>
